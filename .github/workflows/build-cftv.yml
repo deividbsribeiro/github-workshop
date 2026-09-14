@@ -1,0 +1,67 @@
+name: Build CFTV APK
+
+on:
+  push:
+    branches: [cftv-viewer-build]
+    paths-ignore:
+      - 'dist/**'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+
+      - name: Build release APK
+        run: gradle --no-daemon -p cftv-local :app:assembleRelease
+
+      - name: Sign APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          KS="$HOME/.android/debug.keystore"
+          if [ ! -f "$KS" ]; then
+            mkdir -p "$HOME/.android"
+            keytool -genkeypair -v -keystore "$KS" -storepass android -alias androiddebugkey -keypass android \
+              -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000
+          fi
+          APK="cftv-local/app/build/outputs/apk/release/app-release-unsigned.apk"
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          "$BT/zipalign" -f -p 4 "$APK" dist/CFTVLocal-aligned.apk
+          "$BT/apksigner" sign --ks "$KS" --ks-key-alias androiddebugkey \
+            --ks-pass pass:android --key-pass pass:android \
+            --out dist/CFTVLocal.apk dist/CFTVLocal-aligned.apk
+          rm dist/CFTVLocal-aligned.apk
+          "$BT/apksigner" verify --verbose dist/CFTVLocal.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CFTVLocal-apk
+          path: dist/CFTVLocal.apk
+
+      - name: Commit APK to build branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f dist/CFTVLocal.apk
+          git commit -m "build: CFTV Local APK [skip ci]" || exit 0
+          git push
