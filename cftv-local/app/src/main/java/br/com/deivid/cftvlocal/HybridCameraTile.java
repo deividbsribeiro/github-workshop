@@ -215,11 +215,14 @@ final class HybridCameraTile extends FrameLayout {
                 @Override public void onFailed(PlayerAttribute attribute, int msgId, int errorId) {
                     handler.post(() -> fail("P2P ERRO " + errorId));
                 }
+                @Override public void onShowRateAndTime(PlayerAttribute attribute, boolean show, String time, long rate) {
+                    handler.post(() -> setStatus("P2P", OK));
+                }
                 @Override public void onVideoBufferEnd(PlayerAttribute attribute, MsgContent ex) {
                     handler.post(() -> setStatus("P2P", OK));
                 }
                 @Override public void onPlayStateClick(View view) {
-                    // The SDK exposes this callback for its optional player-state overlay.
+                    // Optional SDK player-state overlay callback.
                 }
             });
             p2pPlayer.startMonitor();
