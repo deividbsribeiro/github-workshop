@@ -209,15 +209,17 @@ final class HybridCameraTile extends FrameLayout {
             p2pPlayer.setVideoFullScreen(true);
             p2pPlayer.setStreamType(hd ? SDKCONST.StreamType.Main : SDKCONST.StreamType.Extra);
             p2pPlayer.setOnMediaManagerListener(new MediaManager.OnMediaManagerListener() {
-                @Override public void onMediaPlayState(PlayerAttribute attribute, int state) {}
+                @Override public void onMediaPlayState(PlayerAttribute attribute, int state) {
+                    handler.post(() -> setStatus("P2P", OK));
+                }
                 @Override public void onFailed(PlayerAttribute attribute, int msgId, int errorId) {
                     handler.post(() -> fail("P2P ERRO " + errorId));
                 }
-                @Override public void onShowRateAndTime(PlayerAttribute attribute, boolean show, String time, String rate) {
-                    handler.post(() -> setStatus("P2P", OK));
-                }
                 @Override public void onVideoBufferEnd(PlayerAttribute attribute, MsgContent ex) {
                     handler.post(() -> setStatus("P2P", OK));
+                }
+                @Override public void onPlayStateClick(View view) {
+                    // The SDK exposes this callback for its optional player-state overlay.
                 }
             });
             p2pPlayer.startMonitor();
