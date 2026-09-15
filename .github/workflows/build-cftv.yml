@@ -2,7 +2,7 @@ name: Build CFTV APK
 
 on:
   push:
-    branches: [cftv-viewer-build]
+    branches: [cftv-viewer-build, cftv-viewer-p2p-prep]
     paths-ignore:
       - 'dist/**'
 
